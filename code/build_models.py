@@ -43,12 +43,12 @@ from sklearn.cross_validation import train_test_split
 
 
 # Import the modeling utilities
-sys.path.insert(0, '/Users/valentint/Documents/GitRepos/GitHub/modelingpipeline/utility_functions')
+sys.path.insert(0, '/Users/valentint/Documents/GitRepos/modelingpipeline/utility_functions')
 import modeling_utilities as utils
 
 # Environment variables
 shap.initjs()
-output_path = '/Users/valentint/Documents/GitRepos/GitHub/ga-classifier/results/'
+output_path = '/Users/valentint/Documents/GitRepos/dga-classifier/results/'
 seed_value = 7894
 sample_size = 0.1
 target = 'dga_domain'
@@ -56,7 +56,7 @@ test_size = 0.70
 
 
 # Read in the data
-df = pd.read_csv('/Users/valentint/Documents/GitRepos/GitHub/ga-classifier/data/project-data.csv', low_memory=False)
+df = pd.read_csv('/Users/valentint/Documents/GitRepos/dga-classifier/data/project-data.csv', low_memory=False)
 
 
 print(df.head(10))

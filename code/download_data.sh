@@ -35,20 +35,20 @@
 
 
 # Environment variables
-data_loc="/Users/valentint/Documents/GitRepos/GitHub/ga-classifier/data/"
-log_file="/Users/valentint/Documents/GitRepos/GitHub/ga-classifier/logs/log.txt"
+data_loc="/Users/valentint/Documents/GitRepos/dga-classifier/data/"
+log_file="/Users/valentint/Documents/GitRepos/dga-classifier/logs/log.txt"
 time_now=$(date +%Y-%m-%dT%H:%M:%S)
 ddate=$(date +%Y-%m-%d)
 
 
 # List the data sources
-for i in "alexa http://s3.amazonaws.com/alexa-static/top-1m.csv.zip" \
-"mm http://downloads.majestic.com/majestic_million.csv" \
-"domcop https://www.domcop.com/files/top/top10milliondomains.csv.zip" \
-"cisco http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip" \
-"net360 http://data.netlab.360.com/feeds/dga/dga.txt" \
-"bambenek-dga https://osint.bambenekconsulting.com/feeds/dga-feed.txt" \
-"bambenek-dga-hc https://osint.bambenekconsulting.com/feeds/dga-feed-high.csv"
+for i in "alexa.csv.zip http://s3.amazonaws.com/alexa-static/top-1m.csv.zip" \
+"mm.csv http://downloads.majestic.com/majestic_million.csv" \
+"domcop.csv.zip https://www.domcop.com/files/top/top10milliondomains.csv.zip" \
+"cisco.csv.zip http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip" \
+"netlab360.txt http://data.netlab.360.com/feeds/dga/dga.txt" \
+"bambenek_dga.txt https://osint.bambenekconsulting.com/feeds/dga-feed.txt" \
+"bambenek_dga_hc.csv https://osint.bambenekconsulting.com/feeds/dga-feed-high.csv"
 
 
 # Download the data from each source
