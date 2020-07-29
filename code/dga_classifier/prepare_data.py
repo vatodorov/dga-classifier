@@ -17,7 +17,7 @@ import sys
 
 # Environment variables
 dga_generators_loc = '/Users/valentint/Documents/GitRepos/dga-classifier/code/dga_generators/domain_generation_algorithms'
-analysis_file_loc = '/Users/valentint/Documents/GitRepos/dga-classifier/data/dga-combined-data.csv'
+analysis_file_loc = '/Users/valentint/Documents/GitRepos/dga-classifier/data/dga-combined-data.pkl'
 domains_data_loc = '/Users/valentint/Documents/GitRepos/dga-classifier/data/'
 
 
@@ -89,7 +89,6 @@ def get_data(filename, params, source):
     )
 
     df['source'] = source
-
     print('Successfully, created a dataframe for file {}'.format(filename))
 
     return df
@@ -113,7 +112,7 @@ def create_target(row):
         return 1
 
 
-def execute(files_path, analysis_file, sources, dga_generators_loc, dga_generators=[]):
+def execute(files_path, analysis_file, sources, dga_generators_loc, target, incidence_rate, overwrite=False, dga_generators=[]):
     """
     Executes the complete pipeline to read in the data
 
@@ -125,28 +124,32 @@ def execute(files_path, analysis_file, sources, dga_generators_loc, dga_generato
     # Reads the file names from the provided path
     files = get_files(files_path)
 
+    # IMPORTANT:
+    #   For now, I'm only reading the domain name, but there is more that can be collected.
+    #       -> Alexa, Cisco, MM, Domcop: domain_rank (type Int64)
+    #       -> Bambenek, Bambenek DGA HC, Netlab360: malware (type str), date (type str)
     map_params = {
-        'alexa': {'sep': ',', 'skiprows': None, 'header': None, 'usecols': [0, 1],
-                  'names': ['domain_rank', 'domain'],
-                  'dtype': {'domain_rank': 'Int64', 'domain': str}},
-        'mm': {'sep': ',', 'skiprows': 1, 'header': None, 'usecols': [0, 2],
-               'names': ['domain_rank', 'domain'],
-               'dtype': {'domain_rank': 'Int64', 'domain': str}},
-        'cisco': {'sep': ',', 'skiprows': None, 'header': None, 'usecols': [0, 1],
-                  'names': ['domain_rank', 'domain'],
-                  'dtype': {'domain_rank': 'Int64', 'domain': str}},
-        'domcop': {'sep': ',', 'skiprows': 1, 'header': None, 'usecols': [0, 1],
-                   'names': ['domain_rank', 'domain'],
-                   'dtype': {'domain_rank': 'Int64', 'domain': str}},
-        'bambenek_dga_hc': {'sep': ',', 'skiprows': 15, 'header': None, 'usecols': [0, 1, 2],
-                            'names': ['domain', 'malware', 'date'],
-                            'dtype': {'domain': str, 'malware': str, 'date': str}},
-        'bambenek_dga': {'sep': ',', 'skiprows': 15, 'header': None, 'usecols': [0, 1, 2],
-                         'names': ['domain', 'malware', 'date'],
-                         'dtype': {'domain': str, 'malware': str, 'date': str}},
-        'netlab360': {'sep': '\t', 'skiprows': 18, 'header': None, 'usecols': [0, 1, 2],
-                      'names': ['malware', 'domain', 'date'],
-                      'dtype': {'domain': str, 'malware': str, 'date': str}}
+        'alexa': {'sep': ',', 'skiprows': None, 'header': None, 'usecols': [1],
+                  'names': ['domain'],
+                  'dtype': {'domain': str}},
+        'mm': {'sep': ',', 'skiprows': 1, 'header': None, 'usecols': [2],
+               'names': ['domain'],
+               'dtype': {'domain': str}},
+        'cisco': {'sep': ',', 'skiprows': None, 'header': None, 'usecols': [1],
+                  'names': ['domain'],
+                  'dtype': {'domain': str}},
+        'domcop': {'sep': ',', 'skiprows': 1, 'header': None, 'usecols': [1],
+                   'names': ['domain'],
+                   'dtype': {'domain': str}},
+        'bambenek_dga_hc': {'sep': ',', 'skiprows': 15, 'header': None, 'usecols': [0],
+                            'names': ['domain'],
+                            'dtype': {'domain': str}},
+        'bambenek_dga': {'sep': ',', 'skiprows': 15, 'header': None, 'usecols': [0],
+                         'names': ['domain'],
+                         'dtype': {'domain': str}},
+        'netlab360': {'sep': '\t', 'skiprows': 18, 'header': None, 'usecols': [1],
+                      'names': ['domain'],
+                      'dtype': {'domain': str}}
     }
 
     # Read the domains from the files
@@ -171,30 +174,60 @@ def execute(files_path, analysis_file, sources, dga_generators_loc, dga_generato
 
         # This outputs a list
         data = dga.main(malware_family=d)
+        data['source'] = 'banerj'
         df.append(data)
 
-    # Append the data frame to the main DF
+    # Append the dataframe to the main DF
     df = pd.concat(df)
 
     # Dedup the dataframe by domain
     #   Are there dups by domain but different sources?
+    #   For now just remove all dups - regardless if they may belong to DGA and non-DGA
+    df.drop_duplicates(subset=['domain'], keep='first', inplace=True)
 
     # Create the target variable
-    df['dga_domain'] = df.apply(lambda x: create_target(x), axis=1)
+    df[target] = df.apply(lambda x: create_target(x), axis=1)
     print('The final dataframe is:')
     print(df.head(10))
+    print(df.tail(10))
+    print(df.describe(include='all'))
 
     # Store the final CSV with data
-    df.to_csv(analysis_file, index=False)
-
+    if overwrite:
+        df.to_pickle(analysis_file)
 
 # Run the data aggregation pipeline
 # There are also benign domains from 'domcop' but the file is 10 million records and not worth it for now
 execute(
     files_path=domains_data_loc,
     analysis_file=analysis_file_loc,
-    sources=['alexa'], #'mm', 'cisco', 'netlab360', 'bambenek_dga', 'bambenek_dga_hc'],
+    sources=['alexa', 'mm', 'cisco', 'netlab360', 'bambenek_dga', 'bambenek_dga_hc'],
     dga_generators_loc=dga_generators_loc,
-    dga_generators=['banjori']
+    target='dga_domain',
+    incidence_rate=0.2,
+    overwrite=True,
+    dga_generators=[]
 )
+
+
+def create_sample(df, target, incidence_rate):
+
+    # Calculate the current incidence rate
+
+
+    # Re-calculate how to change the
+
+
+    # Draw sample from the non-dga
+
+
+    # Draw sample from the dga
+
+
+    # Combine the non-dga with the dga
+
+    return df
+
+
+
 
