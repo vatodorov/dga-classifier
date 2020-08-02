@@ -6,12 +6,12 @@
 #
 ########################################################################
 
+import os
 import pandas as pd
 import pickle
-import zipfile
-import os
 import re
 import sys
+import zipfile
 
 # Logging
 
