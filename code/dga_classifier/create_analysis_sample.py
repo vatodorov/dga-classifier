@@ -7,7 +7,7 @@
 ########################################################################
 
 import pickle
-
+import pandas as pd
 
 # Logging
 
@@ -111,10 +111,11 @@ def build_sample(analysis_file_loc, out_file_loc, overwrite, target, max_file_si
         non_dga_len = len(df_non_dga[target])
         print('The final count of cases and non-cases in the file is {} and {} - an incidence rate of {}.'.format(dga_len, non_dga_len, dga_len/(dga_len+non_dga_len)))
 
+    analytical_sample = pd.concat([df_dga, df_non_dga], axis=0)
+
     # Store the final CSV with data
     if overwrite:
-        df_dga.to_pickle('{}/{}'.format(out_file_loc, 'dga_sample'))
-        df_non_dga.to_pickle('{}/{}'.format(out_file_loc, 'non_dga_sample'))
+        analytical_sample.to_pickle('{}/{}'.format(out_file_loc, 'analytical_sample'))
         print('Saved the analysis samples to {}'.format(out_file_loc))
 
 
