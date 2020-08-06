@@ -17,7 +17,6 @@ import sklearn
 from sklearn.model_selection import train_test_split
 
 
-
 def read_data(analysis_file_loc):
     """
     Reads the DGA and non-DGA files for the analysis
@@ -35,7 +34,7 @@ def read_data(analysis_file_loc):
     return data
 
 
-def build_model(max_features, maxlen):
+def compile_model(max_features, maxlen):
     """
     From Endgame: Build LSTM model
 
@@ -47,14 +46,13 @@ def build_model(max_features, maxlen):
     model.add(Dropout(0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
-
     model.compile(loss='binary_crossentropy',
                   optimizer='rmsprop')
 
     return model
 
 
-def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size):
+def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size, train_size):
     """
     Estimates and evaluates an LSTM model
     Most of the code here is from the Endgame model
@@ -80,7 +78,7 @@ def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size):
     maxlen = np.max([len(xi) for xi in X])
 
     # Convert characters to int and pad
-    # (VT) Instead of this conversion, I could try ASCII representation
+    # TODO: Instead of this conversion, try ASCII representation
     X = sequence.pad_sequences([[valid_chars[y] for y in xi] for xi in X], maxlen=maxlen)
 
     # Print stats for X and y
@@ -89,14 +87,20 @@ def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size):
     # Estimate model
     final_data = []
     for fold in range(nfolds):
-        print('fold {}/{}'.format(fold+1, nfolds))
-        X_train, X_test, y_train, y_test, _, label_test = train_test_split(X, y, labels, test_size=0.2)
+        print('Fold {}/{}'.format(fold+1, nfolds))
+        print('Compile model...')
+        model: Sequential = compile_model(max_features, maxlen)
 
-        print('Build model...')
-        model: Sequential = build_model(max_features, maxlen)
+        # Create data samples
+        X_train, X_test, y_train, y_test, _, label_test = train_test_split(X, y, labels, test_size=(1 - train_size))
+        X_test, X_holdout, y_test, y_holdout = train_test_split(X_test, y_test, test_size=0.5)
+
+        print('The modeling samples are: \n'
+              '  -> Training: {} \n'
+              '  -> Testing: {} \n'
+              '  -> Holdout: {}'.format(len(X_train), len(X_test), len(X_holdout)))
 
         print('Train...')
-        X_train, X_holdout, y_train, y_holdout = train_test_split(X_train, y_train, test_size=0.5)
         best_iter = -1
         best_auc = 0.0
         out_data = {}
@@ -126,17 +130,21 @@ def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size):
 
         final_data.append(out_data)
 
+    return final_data
+
+
 
 # ============================================================================================================= #
 
-run_model(
+model_results = run_model(
     read_data(analysis_file_loc='/Users/valentint/Documents/GitRepos/dga-classifier/data/analytical_sample.pkl'),
     max_epoch=5,
-    nfolds=10,
+    nfolds=5,
     batch_size=128,
+    train_size=0.7,
     target='dga_domain',
     target_dga='dga',
     domains='domain'
 )
 
-
+print(model_results)
