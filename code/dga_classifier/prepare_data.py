@@ -358,3 +358,15 @@ build_sample(
 
 
 
+
+import pickle
+
+d = 444
+filename = '/Users/valentint/Documents/GitRepos/dga-classifier/data/test.pkl'
+outfile = open(filename,'wb')
+
+pickle.dump(d, outfile)
+outfile.close()
+
+
+

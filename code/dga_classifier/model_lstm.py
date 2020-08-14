@@ -52,12 +52,14 @@ def compile_model(max_features, maxlen):
     return model
 
 
-def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size, train_size):
+def run_model(data, model_results, overwrite_model_results, target, target_dga, domains, max_epoch, nfolds, batch_size, train_size):
     """
     Estimates and evaluates an LSTM model
     Most of the code here is from the Endgame model
 
     :param data:
+    :param model_results:
+    :param overwrite_model_results:
     :param target:
     :param target_dga:
     :param domains:
@@ -130,6 +132,12 @@ def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size, 
 
         final_data.append(out_data)
 
+    # Store the results in a pickle
+    if overwrite_model_results:
+        f = open(model_results, 'wb')
+        pickle.dump(final_data, f)
+        f.close()
+
     return final_data
 
 
@@ -137,9 +145,11 @@ def run_model(data, target, target_dga, domains, max_epoch, nfolds, batch_size, 
 # ============================================================================================================= #
 
 model_results = run_model(
-    read_data(analysis_file_loc='/Users/valentint/Documents/GitRepos/dga-classifier/data/analytical_sample.pkl'),
+    data=read_data(analysis_file_loc='/root/dga_classifier/data/analytical_sample.pkl'),
+    model_results='/root/dga_classifier/data/analysis_results.pkl',
+    overwrite_model_results=True,
     max_epoch=5,
-    nfolds=5,
+    nfolds=10,
     batch_size=128,
     train_size=0.7,
     target='dga_domain',
