@@ -5,3 +5,4 @@
 /code/dga_generators
 /dga_predict
 *.pkl
+__pycache__
