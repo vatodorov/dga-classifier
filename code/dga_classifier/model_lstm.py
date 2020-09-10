@@ -105,9 +105,11 @@ def run_model(data, model_results_path, overwrite_model_results, target, target_
 
     # Generate a dictionary of valid characters
     X = [x for x in data[domains]]
-
     max_features = len(valid_chars) + 1
     maxlen = np.max([len(xi) for xi in X])
+
+    # TODO: Should I change the maxlen to the max allowed lenght of a domain - max allowed is 253 chars??
+    # source: https://stackoverflow.com/questions/14402407/maximum-length-of-a-domain-name-without-the-http-www-com-parts#:~:text=A%20full%20domain%20name%20is,(including%20the%20separators).%22&text=The%20full%20domain%20name%20may%20not%20exceed%20a%20total%20length,its%20external%20dotted%2Dlabel%20specification.
 
     # Convert characters to int and pad
     X = sequence.pad_sequences([[valid_chars[y] for y in xi] for xi in X], maxlen=maxlen)

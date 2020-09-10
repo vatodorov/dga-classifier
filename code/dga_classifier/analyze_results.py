@@ -6,12 +6,13 @@
 #
 ########################################################################
 
-import sys
+import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, auc, f1_score, classification_report, \
-    accuracy_score, precision_score, recall_score, brier_score_loss
 import pandas as pd
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, auc, f1_score, classification_report, \
+    accuracy_score, precision_score, recall_score
+import sys
 
 # Import the modeling utilities
 sys.path.insert(0, './code/dga_classifier')
@@ -44,8 +45,7 @@ def read_data(data_loc, analysis_run_date, model_results):
 
 
 # Plot the validation and training loss by model
-def linear_plot(data, _xlabel, _ylabel, _title, epochs, _ylim_max,
-                fold_num, save_loc=None, axis_font=axis_font, title_font=title_font):
+def linear_plot(data, _xlabel, _ylabel, _title, epochs, _ylim_max, fold_num, axis_font, title_font, save_loc=None):
     """
     Creates linear graphs
 
@@ -56,8 +56,9 @@ def linear_plot(data, _xlabel, _ylabel, _title, epochs, _ylim_max,
     :param epochs:
     :param _ylim_max:
     :param fold_num:
-    :param save_loc:ƒ
-    :return:
+    :param save_loc:
+    :param axis_font:
+    :param title_font:
     """
 
     map_names = {
@@ -81,11 +82,16 @@ def linear_plot(data, _xlabel, _ylabel, _title, epochs, _ylim_max,
         plt.savefig('{}/{}-Train-Validation-Loss.pdf'.format(save_loc, fold_num))
 
 
-def plot_roc(data, y_actual_label, y_predicted_label, save_loc, axis_font=axis_font, title_font=title_font):
+def plot_roc(data, y_actual_label, y_predicted_label, save_loc, axis_font, title_font):
     """
     Plot the ROC curve for all models
 
-    :param data dict:
+    :param data:
+    :param y_actual_label:
+    :param y_predicted_label:
+    :param save_loc:
+    :param axis_font:
+    :param title_font:
     """
 
     plt.figure(figsize=(12, 7))
@@ -117,31 +123,37 @@ def plot_roc(data, y_actual_label, y_predicted_label, save_loc, axis_font=axis_f
         plt.savefig('{}/ROC_Curve_All_Models.pdf'.format(save_loc))
 
 
-
 # Loop through the model history for all folds
-def analyze_data(data_loc, analysis_date,
+def analyze_data(data_loc, analysis_date, analysis_results_file, y_actual_label, y_predicted_label, score_cutoff,
                  run_model_history=False, run_roc_curve=False, run_lift_table=False, run_cm_table=False):
     """
-    Runs analyses of the data
+    Runs analyses of the data:
         run_model_history: Produces analysis of the train and validation data
         run_roc_curve:
         run_lift_table:
         run_cm_table:
 
-    :param data_loc str:
-    :param analysis_date str:
-    :param run_model_history bool:
-    :param run_roc_curve bool:
-    :param run_lift_table bool:
-    :param run_cm_table bool:
+    :param data_loc:
+    :param analysis_date:
+    :param analysis_results_file:
+    :param y_actual_label:
+    :param y_predicted_label:
+    :param score_cutoff:
+    :param run_model_history:
+    :param run_roc_curve:
+    :param run_lift_table:
+    :param run_cm_table:
     """
 
     # Read in the data with the outputs from the models
     data = read_data(
         data_loc,
         analysis_date,
-        'analysis_results.pkl'
+        analysis_results_file
     )
+
+    # Placeholder to collect the confusion matrices for all models
+    cm_list = []
 
     # Loop through the analysis data for all folds
     for k, v in data.items():
@@ -166,12 +178,12 @@ def analyze_data(data_loc, analysis_date,
                 title_font=title_font
             )
 
-        # 2) Create a lift table for each model
+        # 2) Create a lift table for each model separately
         if run_lift_table:
             scored_data = pd.DataFrame(
                 {
-                    'y_label': v['y_test_holdout'].tolist(),
-                    'y_probs': [item for sub in v['probs_test_holdout'].tolist() for item in sub]
+                    'y_label': v[y_actual_label].tolist(),
+                    'y_probs': [item for sub in v[y_predicted_label].tolist() for item in sub]
                 }
             )
 
@@ -182,58 +194,55 @@ def analyze_data(data_loc, analysis_date,
                 number_bins=10
             )
 
+            # Output the Lift table metrics to a CSV
             lift_table.to_csv('{}/{}/{}_Lift_Table.csv'.format(data_loc, analysis_date, fold_num))
 
-    # 3) Plot the ROC curve with all models on it
-    if run_roc_curve:
+        # 3) Model evaluation metrics for all models combined
+        # This creates a nice summary table for all models for all epochs
+        if run_cm_table:
+            cm_test_holdout = confusion_matrix(v[y_actual_label], v[y_predicted_label] > score_cutoff)
+            cm_list.append(np.concatenate(cm_test_holdout).ravel().tolist())
 
+    if cm_list:
+        cm_df = pd.DataFrame(
+            cm_list,
+            columns=['true_positive', 'false_positive', 'false_negative', 'true_negative']
+        )
+
+        cm_table = utils.confusion_matrix_calculations(cm_df)
+        cm_table.to_csv('{}/{}/Confusion_Matrix.csv'.format(data_loc, analysis_date))
+
+    # 4) Plot the ROC curve with all models on it
+    if run_roc_curve:
         plot_roc(
             data=data,
-            y_actual_label='y_test_holdout',
-            y_predicted_label='probs_test_holdout',
+            y_actual_label=y_actual_label,
+            y_predicted_label=y_predicted_label,
             save_loc='{}/{}'.format(data_loc, analysis_date),
             axis_font=axis_font,
             title_font=title_font
         )
 
-    if run_cm_table:
-        pass
+
+# ============================================================================================================= #
+
+
+analyze_data(
+    data_loc='/Users/valentint/Documents/GitRepos/dga-classifier/data/results',
+    analysis_date='2020-08-30',
+    analysis_results_file='analysis_results.pkl',
+    y_actual_label='y_test_holdout',
+    y_predicted_label='probs_test_holdout',
+    run_model_history=False,
+    run_roc_curve=False,
+    run_lift_table=False,
+    score_cutoff=0.5,
+    run_cm_table=True
+)
+
 
 
 
 # 4) Come up with a maximum number of epochs, and re-run the model
 #   -> 25 epochs are too many, it takes about 8 hrs to run the model with 10 folds, 25 epochs and 200K in a training set
-
-analyze_data(
-    data_loc='/Users/valentint/Documents/GitRepos/dga-classifier/data/results',
-    analysis_date='2020-08-30',
-    run_model_history=False,
-    run_roc_curve=False,
-    run_lift_table=True,
-    run_cm_table=False
-)
-
-
-
-
-
-
-# =================================================================
-
-data = read_data(
-    '/Users/valentint/Documents/GitRepos/dga-classifier/data/results',
-    '2020-08-30',
-    'analysis_results.pkl'
-)
-
-
-
-data['fold0_data'].keys()
-#dict_keys(['y_test_holdout', 'labels_test_holdout', 'probs_test_holdout', 'cm_test_holdout', 'model_history'])
-
-
-# Models evaluation
-
-# 4) - Confusion matrix by model
-
 
