@@ -9,7 +9,7 @@
 from keras.preprocessing import sequence
 from tensorflow.keras.models import load_model
 import pandas as pd
-
+import numpy
 
 def sanitize_data(data):
     """
@@ -92,6 +92,7 @@ def score_domains(data_loc, analysis_date, model_name, data):
     # Only score the domains that have been sanitized
     sanitized_data = sanitize_data(data)
     data = convert_data(sanitized_data)
+    print(data)
     scored_domains = oracle.predict(data)
 
     # Combine the original domains with the scores
@@ -121,3 +122,30 @@ scored, scored_domains_pd = score_domains(
 
 print(scored_domains_pd)
 
+
+# =========================================
+
+from tensorflow.python.keras import backend as k
+
+model = model(
+    data_loc='/Users/valentint/Documents/GitRepos/dga-classifier/data/results',
+    analysis_date='2020-08-30',
+    model_name='model_fold0'
+)
+
+from time import time
+
+start = time()
+model.predict([[0,0,0,23]])
+print(time() - start)
+
+
+session = k.get_session()
+graph = k.get_graph()
+
+with graph.as_default():
+    with session.as_default():
+        pred = model.predict([[16, 19, 28, 29, 30, 15, 24, 15,
+                              28, 17, 35, 28, 15, 29, 25, 31,
+                              28, 13, 15, 17, 28, 25, 31, 26,
+                              37, 13, 25, 23]])
