@@ -8,7 +8,6 @@
 
 from keras.preprocessing import sequence
 from tensorflow.keras.models import load_model
-import pandas as pd
 
 
 class DGAScorer(object):
@@ -42,6 +41,10 @@ class DGAScorer(object):
         clean_data = []
         invalid_chars = "~`!@#$%^&*()_+={}[]|:;<>,?'/\\"
         for x in data:
+
+            # !! IMPORTANT !!:
+            #   For now, all the domains with invalid characters are dropped, but need to change later
+            #   Need to probably create a JSON with a key that identifies which domain to score or not
             if any(n in x for n in [x for x in invalid_chars]):
                 print('The domain {} is not valid and will not be scored'.format(x))
                 continue
@@ -73,14 +76,22 @@ class DGAScorer(object):
 
         return load_model('{}/{}/{}.h5'.format(data_loc, analysis_date, model_name), compile=False)
 
-    def score_domains(self, data_loc, analysis_date, model_name, list_of_domains, data):
+    def category_mapper(self, score, cutoff):
+        """
+        Maps the DGA likelihood score to a category
+        :param score:
+        :return:
+        """
+
+        return ('Very Likely' if score >= cutoff else 'Unlikely')
+
+    def score_domains(self, data_loc, analysis_date, model_name, data, cutoff):
         """
         Scores the domains, and returns the probability that a domain is a DGA
 
         :param data_loc:
         :param analysis_date:
         :param model_name:
-        :param list_of_domains:
         :param data:
         :return:
         """
@@ -94,16 +105,19 @@ class DGAScorer(object):
 
         # Only score the domains that have been sanitized
         sanitized_data = self.sanitize_data(data)
-        data = self.convert_data(sanitized_data)
-        print(data)
-        scored_domains = oracle.predict(data)
+        tokenized_domains = self.convert_data(sanitized_data)
+        scored_domains = [x for subl in oracle.predict(tokenized_domains).tolist() for x in subl]
 
-        # Combine the original domains with the scores
-        scored_domains_pd = pd.DataFrame(
-            {
-                'sanitized_domains': sanitized_data,
-                'predicted_probs': scored_domains.tolist()
-            }
-        )
+        # Combine the original domains with the scores and output a JSON
+        json_output = []
+        for i in range(0, len(data)):
+            json_output.append(
+                {
+                    'orig_domain': data[i],
+                    'clean_domain': sanitized_data[i],
+                    'dga_score': scored_domains[i],
+                    'dga_cat': self.category_mapper(scored_domains[i], cutoff)
+                }
+            )
 
-        return scored_domains, scored_domains_pd
+        return json_output

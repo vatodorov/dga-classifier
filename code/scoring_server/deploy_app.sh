@@ -30,6 +30,7 @@ echo "Please provide the following server configuration values..."
 read -p "Enter the main path to the models without the analysis date: " MODEL_LOCATION
 read -p "Enter the analysis date for the model: " ANALYSIS_DATE
 read -p "Enter name of the model: " MODEL_NAME
+read -p "Enter the cutoff for the DGA score: " DGA_SCORE_CUTOFF
 
 
 # Configure the app
@@ -41,6 +42,7 @@ cat << EOF > "${APP_CONFIG_DIR}/config.yaml"
 model_location=${MODEL_LOCATION}
 analysis_date=${ANALYSIS_DATE}
 model_name=${MODEL_NAME}
+dga_score_cutoff=${DGA_SCORE_CUTOFF}
 app_host='0.0.0.0'
 app_port=${APP_PORT}
 EOF
