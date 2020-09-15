@@ -16,7 +16,8 @@ pip install dga_classifier_server
 # Create a config file for the app
 APP_PORT=5001
 APP_CONFIG_DIR=/opt/dga-classifier-server
-LOG_LOCATION=/opt/dga-classifier-server/logs/dga_classifier_server.log
+LOG_LOCATION=/opt/dga-classifier-server/logs
+LOG_FILE=dga_classifier_server.log
 
 echo "Createing the server config directory ${APP_CONFIG_DIR}"
 mkdir ${APP_CONFIG_DIR}
@@ -51,7 +52,7 @@ EOF
 # Apache directive
 # DO I NEED THIS PART????
 echo "Adding a directive to the Apache file..."
-<Location /domain_upload>
+<Location /manticore>
     ProxyPreserveHost On
     ProxyPass http://localhost:${APP_PORT}/
     ProxyPassReverse http://localhost:${APP_PORT}/
@@ -62,7 +63,7 @@ EOF
 # Run the app as a service
 echo "Setting up the DGA Classifier to run as a service"
 LOG_LEVEL=DEBUG
-LOG_LOCATION=${LOG_LOCATION}
+LOG_LOCATION_FILE="${LOG_LOCATION}/${LOG_FILE}"
 
 cat << EOF > "/etc/systemd/system/dga_classifier.service"
 [Unit]
@@ -72,7 +73,7 @@ Description=Flask app server that runs the DGA Classifier scoring API
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/usr/bin/gunicorn dga_classifier_server:app --bind 0.0.0.0:${APP_PORT} --config python:dga_classifier_server --log-level ${LOG_LEVEL} --log-location ${LOG_LOCATION}
+ExecStart=/usr/bin/gunicorn dga_classifier_server:app --bind 0.0.0.0:${APP_PORT} --config python:dga_classifier_server --log-level ${LOG_LEVEL} --log-location ${LOG_LOCATION_FILE}
 Restart=always
 TimeoutSec=10
 
