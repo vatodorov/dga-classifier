@@ -1,0 +1,8 @@
+data:
+  model_location: /Users/valentint/Documents/GitRepos/dga-classifier/data/results
+  analysis_date: 2020-08-30
+  model_name: model_fold0
+  dga_score_cutoff: 0.5
+  app_host: 0.0.0.0
+  app_port: 5001
+  app_threads_mode: Single

@@ -7,13 +7,12 @@
 #
 ########################################################################
 
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Import the scoring algorithm
-from scoring_app import DGAScorer
-
+from dga_classifier.scoring_app import DGAScorer
 
 app = Flask(__name__)
 auth = HTTPBasicAuth()
