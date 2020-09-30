@@ -37,6 +37,13 @@ class DGAScorer(object):
         # Remove empty spaces
         data = [x.replace(' ', '').lower() for x in data]
 
+
+        # TODO:
+        #   (1) We shouldn't be sanitizing the domains - if someone entered a bad domain, then do not score it
+        #       If invalid chars are removed from a domain, that completely changes it
+        #   (2) How to deal with subdomains (e.g. blah.cnn.com)?
+        #       I should probably extract the domain from the subdomain, and score only the domain
+
         # Remove domains with invalid characters
         clean_data = []
         invalid_chars = "~`!@#$%^&*()_+={}[]|:;<>,?'/\\"
@@ -85,7 +92,7 @@ class DGAScorer(object):
 
         return ('Very Likely' if score >= cutoff else 'Unlikely')
 
-    def score_domains(self, data_loc, analysis_date, model_name, data, cutoff):
+    def score_domains(self, data_loc, analysis_date, model_name, data, cutoff, source):
         """
         Scores the domains, and returns the probability that a domain is a DGA
 
@@ -93,6 +100,8 @@ class DGAScorer(object):
         :param analysis_date:
         :param model_name:
         :param data:
+        :param cutoff:
+        :param source:
         :return:
         """
 
@@ -109,15 +118,32 @@ class DGAScorer(object):
         scored_domains = [x for subl in oracle.predict(tokenized_domains).tolist() for x in subl]
 
         # Combine the original domains with the scores and output a JSON
-        json_output = []
-        for i in range(0, len(data)):
-            json_output.append(
-                {
-                    'orig_domain': data[i],
-                    'clean_domain': sanitized_data[i],
-                    'dga_score': scored_domains[i],
-                    'dga_cat': self.category_mapper(scored_domains[i], cutoff)
-                }
-            )
+        if source.lower() == 'api':
+            json_output = []
+            for i in range(0, len(data)):
+                json_output.append(
+                    {
+                        'orig_domain': data[i],
+                        'clean_domain': sanitized_data[i],
+                        'dga_score': scored_domains[i],
+                        'dga_cat': self.category_mapper(scored_domains[i], cutoff)
+                    }
+                )
+        elif source.lower() == 'dns_proxy':
+
+            # Score the domain
+            # This should only take one domain so there is no need to create a list
+            orig_domain = data[0]
+
+
+            # Return the
+            json_output = 'BLAH.... BLAH'
+
+        else:
+            print('Unknown source')
 
         return json_output
+
+
+
+

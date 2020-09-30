@@ -3,6 +3,6 @@
 /logs
 /data
 /code/dga_generators
-/dga_predict
 *.pkl
 __pycache__
+dnschef

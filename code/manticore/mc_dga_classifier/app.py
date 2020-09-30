@@ -39,9 +39,9 @@ users = {
     'user1': generate_password_hash('2NJs!&JrvZ3vFVHsFdA')
 }
 
+
 # Initialize the scoring model
 dga_scorer = DGAScorer()
-
 
 # Enable auth verification
 @auth.verify_password
@@ -49,16 +49,14 @@ def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
 
-
 @app.route('/', methods=['GET'])
 def get_web():
     if request.method == 'GET':
         return 'Welcome to Manticore. We offer an automated classification of domains'
 
-
 @app.route('/api/predict', methods=['POST'])
 @auth.login_required
-def app_score():
+def app_score(source='api'):
     if auth.current_user():
         if request.method == 'POST':
             # Parse the payload provided by the user
@@ -74,7 +72,8 @@ def app_score():
                 analysis_date=analysis_date,
                 model_name=model_name,
                 data=domains,
-                cutoff=dga_score_cutoff
+                cutoff=dga_score_cutoff,
+                source=source
             )
 
             return jsonify({'data': scored_domains}),\
@@ -84,7 +83,6 @@ def app_score():
         return jsonify({'data': 'You are not authorized to use this endpoint'}),\
                401,\
                {'Content-Type': 'application/json'}
-
 
 if __name__ == '__main__':
     # Start the app

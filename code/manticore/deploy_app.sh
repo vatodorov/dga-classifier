@@ -15,11 +15,14 @@ APP_NAME=mc_dga_classifier
 # Folder with the deployment package for the app
 APP_DEPLOY_LOC=/tmp/${APP_NAME}
 
+# The path to the folder where gunicorn is installed
+# If it's running in a virtual environment, this will be the virtual env path
 # Path to the Python virtual env for the app
 VIRTUAL_ENV_PATH=/opt/venvs/dga-app
 
 # Create a config file for the app
 APP_PORT=5001
+APP_HOST=0.0.0.0
 APP_CONFIG_DIR=/opt/${APP_NAME}
 LOG_LOCATION=/opt/${APP_NAME}/logs
 LOG_FILE=${APP_NAME}.log
@@ -73,7 +76,7 @@ data
   analysis_date: ${ANALYSIS_DATE}
   model_name: ${MODEL_NAME}
   dga_score_cutoff: ${DGA_SCORE_CUTOFF}
-  app_host: 0.0.0.0
+  app_host: ${APP_HOST}
   app_port: ${APP_PORT}
   app_threads_mode: ${THREADS_MODE}
 EOF
@@ -121,9 +124,11 @@ cat << EOF > "/etc/apache2/sites-available/000-default.conf"
 
         #Include conf-available/serve-cgi-bin.conf
 
+        # This directive is needed for Gunicorn
+        # IMPORTANT: This can also be in a separate file. Doesn't need to be in the default conf file
         ProxyPreserveHost On
-        ProxyPass / http://localhost:5001/
-        ProxyPassReverse / http://localhost:5001/
+        ProxyPass / http://localhost:${APP_PORT}/
+        ProxyPassReverse / http://localhost:${APP_PORT}/
 
 </VirtualHost>
 EOF
@@ -149,7 +154,7 @@ Description=Flask app server that runs the DGA Classifier scoring API
 Type=simple
 User=root
 WorkingDirectory=/root
-ExecStart=/opt/venvs/dga-app/bin/gunicorn mc_dga_classifier.app:app --bind 0.0.0.0:5001 --pythonpath /opt/venvs/dga-app/bin/python --log-level info --error-logfile /var/log/mc_dga_classifier.log
+ExecStart=${VIRTUAL_ENV_PATH}/bin/gunicorn ${APP_NAME}.app:app --bind ${APP_HOST}:${APP_PORT} --pythonpath ${VIRTUAL_ENV_PATH}/bin/python --log-level info --error-logfile /var/log/${APP_NAME}.log
 Restart=always
 TimeoutSec=10
 
@@ -172,8 +177,13 @@ sleep 5
 echo -e "\nRestarting the daemon and enabling the server to start after a reboot"
 chmod 664 "/etc/systemd/system/${APP_NAME}.service"
 systemctl daemon-reload
-systemctl enable ${APP_NAME}.service
+systemctl enable ${APP_NAME}
 systemctl restart ${APP_NAME}
+
+sleep 5
+
+echo -e "\nChecking the status of the app...\n"
+systemctl status ${APP_NAME}
 
 sleep 5
 
